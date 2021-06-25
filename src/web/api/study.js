@@ -28,7 +28,7 @@ export function edit(data) {
   return request({
     url: 'api/userSysVal',
     method: 'put',
-    data
+    params: data
   })
 }
 

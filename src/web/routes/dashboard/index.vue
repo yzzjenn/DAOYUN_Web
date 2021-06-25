@@ -2,7 +2,7 @@
   <div class="dashboard-editor-container">
     <el-card shadow="hover">
       <div slot="header" class="text">
-        <span>{{ username }},欢迎您！</span>
+        <span>欢迎您！</span>
       </div>
       <!-- <el-collapse>
         <el-collapse-item title="右上角" name="1">

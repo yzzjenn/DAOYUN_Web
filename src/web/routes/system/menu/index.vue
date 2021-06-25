@@ -87,6 +87,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <!-- 添加和编辑菜单 -->
       <el-dialog
         append-to-body
         :close-on-click-modal="false"
@@ -158,6 +159,7 @@
           <el-button @click="crud.cancelCU">取消</el-button>
         </div>
       </el-dialog>
+      <!-- 选择图标页面 -->
       <el-dialog
         title="选择图标"
         :visible.sync="iconVisible"

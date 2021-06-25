@@ -10,6 +10,14 @@ export function login(data) {
   })
 }
 
+export function loginbyphone(data) {
+  return request({
+    // url: '/present-cloud/user/login',
+    url: '/auth/loginByPhone',
+    method: 'post',
+    data
+  })
+}
 // export function getInfo(token) {
 //   return request({
 //     url: '/present-cloud/user/info',

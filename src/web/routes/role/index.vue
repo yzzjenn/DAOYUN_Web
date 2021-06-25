@@ -1,23 +1,29 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
+      <!-- 头部 -->
       <div>
+        <!-- 第一行 -->
         <el-row>
           <span>角色名：</span>
           <el-input
             v-model="name"
             placeholder="请输入角色名"
             style="width: 200px;"
+            @keyup.enter.native="handlesearch"
           />
           <el-button type="primary" style="margin-left: 10px" @click="handlesearch">查询</el-button>
           <el-button @click="resetData">重置</el-button>
         </el-row>
+        <!-- 第二行 -->
         <el-row>
           <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">添加</el-button>
           <el-button :disabled="ids.length === 0" type="danger" size="small" @click="deleteVisible = true">删除</el-button>
         </el-row>
       </div>
+      <!-- 主体 -->
       <div>
+        <!-- 表格 -->
         <el-row>
           <el-table
             ref="table"
@@ -71,6 +77,7 @@
             </el-table-column>
           </el-table>
         </el-row>
+        <!-- 分页 -->
         <el-row>
           <el-pagination
             background
@@ -84,6 +91,7 @@
           />
         </el-row>
       </div>
+      <!-- 添加/编辑弹出框 -->
       <el-dialog
         :title="dialogTitle"
         :visible.sync="visible"
@@ -199,9 +207,8 @@ export default {
       total: 0,
       dataScopes: ['全部', '本级', '自定义'],
       rules: {
-        name: [
-          { type: 'string', required: true, message: '名称不能为空', trigger: 'blur' }
-        ]
+        name: [{ type: 'string', required: true, message: '名称不能为空', trigger: 'blur' }],
+        description: [{ type: 'string', required: true, message: '请输入描述', trigger: 'blur' }]
       },
       defaultForm: {
         id: null,
@@ -291,6 +298,7 @@ export default {
       this.ids = [this.form.id]
       this.deleteVisible = true
     },
+    // 搜索
     handlesearch() {
       this.listLoading = true
       this.fetchData()

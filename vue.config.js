@@ -23,8 +23,10 @@ module.exports = {
    * then publicPath should be set to "/bar/".
    * In most cases please use '/' !!!
    * Detail: https://cli.vuejs.org/config/#publicpath
+   * 如果你的前端应用和后端 API 服务器没有运行在同一个主机上，你需要在开发环境下将 API 请求代理到 API 服务器。这个问题可以通过 vue.config.js 中的 devServer.proxy 选项来配置。
+   * devServer.proxy 可以是一个指向开发环境 API 服务器的字符串：
    */
-  publicPath: '/',
+  publicPath: './',
   outputDir: 'dist',
   assetsDir: 'static',
   lintOnSave: process.env.NODE_ENV === 'development',
@@ -38,14 +40,15 @@ module.exports = {
     },
     proxy: {
       '/auth': {
-        target: 'http://49.232.29.120:8000',
+        target: 'http://121.4.16.48:8000',
         changeOrigin: true
       },
       '/api': {
-        target: 'http://49.232.29.120:8000',
+        target: 'http://121.4.16.48:8000',
         changeOrigin: true
       }
     },
+    // 这里有before和after两种方式，但是有后端接口的话，改用after更好。
     after: require('./mock/mock-server.js')
   },
   configureWebpack: {
