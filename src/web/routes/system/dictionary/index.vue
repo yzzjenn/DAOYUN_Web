@@ -3,6 +3,7 @@
     <el-row>
       <el-col :span="12">
         <el-card class="box-card">
+          <!-- 卡片头部 -->
           <div>
             <el-row>
               <span>字典名：</span>
@@ -20,6 +21,7 @@
               <el-button :disabled="ids.length === 0" type="danger" size="small" @click="deleteVisible = true">删除</el-button>
             </el-row>
           </div>
+          <!-- 卡片中部 -->
           <div>
             <el-row>
               <el-table
@@ -59,6 +61,7 @@
                 </el-table-column>
               </el-table>
             </el-row>
+            <!-- 底部 分页-->
             <el-row>
               <el-pagination
                 background
@@ -74,6 +77,7 @@
           </div>
         </el-card>
       </el-col>
+      <!-- 右侧卡片 -->
       <el-col :span="12">
         <el-card class="box-card">
           <div slot="header" class="clearfix">
@@ -107,11 +111,16 @@
                 label="排序"
                 sortable
               />
+              <el-table-column
+                prop="isdefault"
+                label="是否默认值"
+              />
             </el-table>
           </div>
         </el-card>
       </el-col>
     </el-row>
+    <!-- 删除框 -->
     <el-dialog
       title="确认删除"
       :visible.sync="deleteVisible"
@@ -127,6 +136,7 @@
         <el-button @click="closeForm">取 消</el-button>
       </span>
     </el-dialog>
+    <!-- 添加字典 -->
     <el-dialog
       :title="dialogTitle"
       :visible.sync="visible"
@@ -135,13 +145,14 @@
       :destroy-on-close="true"
     >
       <el-col :span="23">
-        <el-form ref="form" :inline="true" :model="form" label-width="80px">
+        <el-form ref="form" :inline="true" :rules="dicrules" :model="form" label-width="80px">
           <el-form-item label="字典名" label-position="right" prop="name">
             <el-input v-model="form.name" style="width: 150px;" placeholder="请输入字典名" clearable />
           </el-form-item>
           <el-form-item label="字典描述" label-position="right">
             <el-input v-model="form.description" style="width: 200px;" placeholder="请输入描述" clearable />
           </el-form-item>
+          <!-- 如果该字典不是新加的，则form.id 有值，可以加载它的详情 -->
           <el-form-item v-if="form.id !== null" label="字典详情" label-position="top">
             <el-table
               ref="lableList"
@@ -173,6 +184,10 @@
                 label="排序"
                 sortable
               />
+              <el-table-column
+                prop="isdefault"
+                label="是否默认值"
+              />
               <el-table-column label="操作" width="150">
                 <template slot-scope="scope">
                   <el-button
@@ -196,15 +211,16 @@
         <el-button @click="closeForm">取 消</el-button>
       </span>
     </el-dialog>
+    <!-- 字典详情里面的：添加和编辑 -->
     <el-dialog
-      title="编辑字典详情"
+      :title="dialogTitle"
       :visible.sync="visibleLabel"
       width="40%"
       :show-close="false"
       :destroy-on-close="true"
     >
       <el-col :span="23">
-        <el-form ref="labelForm" :model="labelForm" label-width="80px">
+        <el-form ref="labelForm" :model="labelForm" :rules="labelAddOrEdit?editlableDetailrulesadd:editlableDetailrulesedit" label-width="80px">
           <el-form-item label="标签名" prop="label">
             <el-input v-model="labelForm.label" placeholder="请输入标签名" clearable />
           </el-form-item>
@@ -213,6 +229,10 @@
           </el-form-item>
           <el-form-item label="排序" prop="dictSort">
             <el-input-number v-model="labelForm.dictSort" :min="1" :max="999" clearable />
+          </el-form-item>
+          <el-form-item label="默认值?" prop="isdefault">
+            <el-radio v-model="labelForm.isdefault" label="是">是</el-radio>
+            <el-radio v-model="labelForm.isdefault" label="否">否</el-radio>
           </el-form-item>
         </el-form>
       </el-col>
@@ -232,22 +252,49 @@ import { Notification } from 'element-ui'
 export default {
   name: 'Dictionary',
   data() {
+    var validatelableValueAdd = (rule, value, callback) => {
+      const n = this.formlableData.length
+      var flag = 0
+      for (let index = 0; index < n; index++) {
+        if (value === this.formlableData[index].value) {
+          flag = 1
+        }
+      }
+      if (flag) {
+        flag = 0
+        callback(new Error('标签值重复'))
+      } else {
+        callback()
+      }
+    }
+    var validatelableValueEdit = (rule, value, callback) => {
+      const n = this.formlableData.length
+      for (let index = 0; index < n; index++) {
+        // eslint-disable-next-line eqeqeq
+        if (this.formlableData[index].value != this.tempvalue && value == this.formlableData[index].value) {
+          callback(new Error('标签值重复'))
+        }
+      }
+      callback()
+    }
     return {
       total: 0,
-      name: '',
+      name: '', // 搜索框关键字
       dialogTitle: '',
+      labelAddOrEdit: true,
+      tempvalue: '',
       pagesizes: [5, 10, 15, 20],
       pagesize: 5,
       currentPage: 1,
-      tableLoading: true,
+      tableLoading: true, // 加载表格的加载动画
       labelLoading: false,
       formLoading: false,
-      visible: false,
-      visibleLabel: false,
-      deleteVisible: false,
+      visible: false, // 添加按钮的编辑页面
+      visibleLabel: false, // 编辑按钮的编辑页面
+      deleteVisible: false, // 删除按钮的弹出框
       tableData: [],
       lableData: [],
-      formlableData: [],
+      formlableData: [], // 编辑弹出框里面的字典详细表格数据
       defaultForm: {
         id: null,
         name: '',
@@ -258,12 +305,25 @@ export default {
         label: '',
         value: '',
         dictSort: 0,
-        dict: { id: null }
+        dict: { id: null },
+        isdefault: '是'
       },
-      form: null,
+      form: null, // 弹出框的表格数据
       labelForm: null,
       row: null,
-      ids: []
+      ids: [],
+      dicrules: {
+        // 字典名验证
+        name: [{ required: true, message: '请输入字典名', trigger: 'blur' }]
+      },
+      editlableDetailrulesadd: {
+        value: [{ required: true, message: '请输入标签值', trigger: 'blur' },
+          { required: true, validator: validatelableValueAdd, trigger: 'blur' }]
+      },
+      editlableDetailrulesedit: {
+        value: [{ required: true, message: '请输入标签值', trigger: 'blur' },
+          { required: true, validator: validatelableValueEdit, trigger: 'blur' }]
+      }
     }
   },
   created() {
@@ -273,6 +333,27 @@ export default {
     this.labelForm = JSON.parse(JSON.stringify(this.defaultlabelForm))
   },
   methods: {
+    // 下拉框
+    styleChange(val) {
+      // eslint-disable-next-line eqeqeq
+      if (val == 0) {
+        this.isShow1 = true
+        this.isShow2 = false
+      } else {
+        this.isShow1 = false
+        this.isShow2 = true
+      }
+      var data = {}
+      this.outfallType = val
+      data.outfallType = this.outfallType
+      // eslint-disable-next-line no-undef
+      getRealDataV2(data).then(val => {
+        if (val.code === 200) {
+          this.newData(val)
+        }
+      })
+    },
+    // 获取表格数据
     fetchData() {
       this.tableLoading = true
       this.ids = []
@@ -290,15 +371,20 @@ export default {
         this.tableLoading = false
       })
     },
+    // 搜索框
     search() {
       if (this.name.length === 0) {
         this.$message('不能为空')
       } else {
         this.tableLoading = true
-        this.currentPage = 1
-        this.fetchData()
+        crudDicts.search(this.name).then(response => {
+          console.log(response)
+          this.tableData = response
+          this.tableLoading = false
+        })
       }
     },
+    // 重置
     resetData() {
       this.tableLoading = true
       this.currentPage = 1
@@ -308,11 +394,12 @@ export default {
       this.labelForm = JSON.parse(JSON.stringify(this.defaultlabelForm))
       this.fetchData()
     },
+    // 查看详情 val 是点击该行的对象
     tableCurrentChange(val) {
       this.row = val
       this.labelLoading = true
       crudDict.get(val.name).then(response => {
-        this.lableData = response.content
+        this.lableData = response
         this.labelLoading = false
       })
     },
@@ -325,18 +412,22 @@ export default {
       this.row = JSON.parse(JSON.stringify(this.defaultForm))
       this.fetchData()
     },
+    // 新增字典
     handleAdd() {
       this.dialogTitle = '新增字典'
       this.form = JSON.parse(JSON.stringify(this.defaultForm))
       this.formlableData = []
       this.visible = true
     },
+    // 编辑详情里面的字典详情的添加
     handleLabelAdd() {
+      this.labelAddOrEdit = true
       this.dialogTitle = '新增字典详情'
       this.labelForm = JSON.parse(JSON.stringify(this.defaultlabelForm))
       this.labelForm.dict.id = this.form.id
       this.visibleLabel = true
     },
+    // 编辑字典
     handleEdit(index, row) {
       this.dialogTitle = '编辑字典'
       this.form = JSON.parse(JSON.stringify(this.defaultForm))
@@ -345,29 +436,35 @@ export default {
         name: row.name,
         description: row.description
       }
-      this.formLoading = true
+      this.formLoading = true // 编辑详情里面的字典详情加载动画
       crudDict.get(this.form.name).then(response => {
-        this.formlableData = response.content
+        this.formlableData = response
         this.formLoading = false
       })
       this.visible = true
     },
+    // 编辑详情里面的字典详情的编辑
     handleLabelEdit(index, row) {
+      this.labelAddOrEdit = false
+      this.tempvalue = row.value
+      console.log('this.tempvalue' + this.tempvalue)
       this.dialogTitle = '编辑字典详情'
       this.labelForm = JSON.parse(JSON.stringify(row))
       this.visibleLabel = true
     },
+    // 字典删除，用来显示删除提示框
     handleDelete(index, row) {
       this.form = JSON.parse(JSON.stringify(row))
       this.ids = [this.form.id]
-      this.deleteVisible = true
+      this.deleteVisible = true // 删除提示框
     },
+    // 编辑详情里面的字典详情的删除
     handleLabelDelete(index, row) {
       this.labelForm = JSON.parse(JSON.stringify(row))
       this.formLoading = true
       crudDict.del(this.labelForm.id).then(response => {
         crudDict.get(this.form.name).then(response => {
-          this.formlableData = response.content
+          this.formlableData = response
           this.formLoading = false
           this.notifiSuccess('删除成功')
         })
@@ -375,6 +472,7 @@ export default {
         this.notifiError('删除失败')
       })
     },
+    // 字典的编辑和增加
     update() {
       this.$refs['form'].validate((valid) => {
         if (valid) {
@@ -399,25 +497,32 @@ export default {
         }
       })
     },
+    // 字典详情里面的更新操作
     updatelableData() {
       this.$refs['labelForm'].validate((valid) => {
         if (valid) {
+          // 新增操作
           if (this.labelForm.id === null) {
             crudDict.add(this.labelForm).then(response => {
               this.formLoading = true
+              this.labelLoading = true
               crudDict.get(this.form.name).then(response => {
-                this.formlableData = response.content
+                this.formlableData = response
+                this.lableData = response
                 this.formLoading = false
+                this.labelLoading = false
                 this.notifiSuccess('新增成功')
               })
             }).catch(() => {
               this.notifiError('新增失败')
             })
-          } else {
+          } else { // 编辑操作
             crudDict.edit(this.labelForm).then(response => {
               this.formLoading = true
               crudDict.get(this.form.name).then(response => {
-                this.formlableData = response.content
+                this.formlableData = response
+                this.lableData = response
+                this.labelLoading = false
                 this.formLoading = false
                 this.notifiSuccess('编辑成功')
               })
@@ -429,6 +534,7 @@ export default {
         }
       })
     },
+
     deleteData() {
       crudDicts.del(this.ids).then(response => {
         this.ids = []

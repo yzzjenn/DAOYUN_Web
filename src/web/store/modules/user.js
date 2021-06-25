@@ -1,4 +1,4 @@
-import { login, logout, getInfo } from '@/web/api/user'
+import { login, logout, getInfo , loginbyphone} from '@/web/api/user'
 import { getToken, setToken, removeToken } from '@/web/utils/auth'
 import { resetRouter } from '@/router'
 
@@ -40,14 +40,14 @@ const mutations = {
 const actions = {
   // 登录
   login({ commit }, userInfo) {
-    const { username, password, rememberMe } = userInfo
+    const { username, password} = userInfo
     return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
+      login({ username: username, password: password }).then(response => {
         // const { data } = response
         // console.log('loginres', response)
         commit('SET_TOKEN', response.token)
         commit('SET_LOAD_MENUS', true)
-        setToken(response.token, rememberMe)
+        setToken(response.token)
         // commit('SET_USER', response.user)
         // getInfo().then(response => {
         //   console.log('getInfo', response)
@@ -60,6 +60,31 @@ const actions = {
       })
     })
   },
+
+  // 手机号登录
+  loginbyphone({ commit }, userInfo) {
+    console.log('modoul_loginbyphone_start')
+    const phone = userInfo.phone
+    return new Promise((resolve, reject) => {
+      loginbyphone(phone).then(response => {
+        // const { data } = response
+        // console.log('loginres', response)
+        commit('SET_TOKEN', response.token)
+        commit('SET_LOAD_MENUS', true)
+        setToken(response.token)
+        // commit('SET_USER', response.user)
+        // getInfo().then(response => {
+        //   console.log('getInfo', response)
+        // })
+        setUserInfo(response.user, commit)
+        resolve()
+      }).catch(error => {
+        console.log('modoul_loginbyphone_error', error)
+        reject(error)
+      })
+    })
+  },
+
 
   // 获取用户信息
   getInfo({ commit, state }) {

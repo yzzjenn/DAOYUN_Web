@@ -36,7 +36,7 @@ export default {
       if ((this.currentPage - 1) * this.pagesize >= this.total && this.currentPage > 1) {
         this.currentPage -= 1
       }
-      console.log('页码', this.currentPage)
+      // console.log('页码', this.currentPage)
       this.$emit('func', [this.pagesize, this.currentPage])
     }
   },

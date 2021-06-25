@@ -8,6 +8,7 @@
             v-model="name"
             placeholder="请输入课程"
             style="width: 200px;"
+            @keyup.enter.native="search"
           />
           <el-button type="primary" style="margin-left: 10px" @click="search">查询</el-button>
           <el-button @click="resetData">重置</el-button>
@@ -19,6 +20,7 @@
       </div>
       <div>
         <el-row>
+          <!-- 数据表格 -->
           <el-table
             ref="table"
             v-loading="listLoading"
@@ -66,6 +68,7 @@
             </el-table-column>
           </el-table>
         </el-row>
+        <!-- 分页 -->
         <el-row>
           <el-pagination
             background
@@ -79,10 +82,11 @@
           />
         </el-row>
       </div>
+      <!-- 添加和编辑框 -->
       <el-dialog
         :title="dialogTitle"
         :visible.sync="visible"
-        width="500px"
+        width="800px"
         :show-close="false"
         :destroy-on-close="true"
       >
@@ -101,6 +105,58 @@
                 placeholder="选择院校"
               />
             </el-form-item>
+            <!-- 课程详情 -->
+            <!-- <el-form-item v-if="form.id !== null" label="字典详情" label-position="top">
+              <el-table
+                ref="lableList"
+                v-loading="formLoading"
+                :data.sync="formlableData"
+                style="width: 630px"
+                row-key="id"
+                lazy
+                :default-sort="{prop: 'dictSort', order: 'ascending'}"
+              >
+                <el-table-column label="所属字典">
+                  {{ form.name }}
+                </el-table-column>
+                <el-table-column
+                  prop="label"
+                  label="标签名"
+                >
+                  <template slot-scope="scope">
+                    <span v-show="!scope.row.inputShow">{{ scope.row.label }}</span>
+                    <el-input v-show="scope.row.inputShow" v-model="scope.row.label" class="table-input" placeholder="请输入标签名" />
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  prop="value"
+                  label="标签值"
+                />
+                <el-table-column
+                  prop="dictSort"
+                  label="排序"
+                  sortable
+                />
+                <el-table-column
+                  prop="isdefault"
+                  label="是否默认值"
+                />
+                <el-table-column label="操作" width="150">
+                  <template slot-scope="scope">
+                    <el-button
+                      size="mini"
+                      @click="handleLabelEdit(scope.$index, scope.row)"
+                    >编辑</el-button>
+                    <el-button
+                      size="mini"
+                      type="danger"
+                      @click="handleLabelDelete(scope.$index, scope.row)"
+                    >删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <el-button type="primary" size="small" icon="el-icon-plus" @click="handleLabelAdd">添加</el-button>
+            </el-form-item> -->
           </el-form>
         </el-col>
         <span slot="footer" class="dialog-footer">
@@ -108,6 +164,7 @@
           <el-button @click="closeForm">取 消</el-button>
         </span>
       </el-dialog>
+      <!-- 删除框 -->
       <el-dialog
         title="删除选中课程"
         :visible.sync="deleteVisible"
@@ -176,7 +233,8 @@ export default {
         ]
       },
       colleges: [],
-      ids: []
+      ids: [],
+      fetchOrSearch: true
     }
   },
   created() {
@@ -186,14 +244,17 @@ export default {
   },
   methods: {
     fetchData() {
+      this.fetchOrSearch = true
       this.ids = []
       this.listLoading = true
       crudClass.getPart().then(response => {
         const content = response
         const res = new Map()
+        // 过滤操作，用来过滤重复的课程名与学院id
         this.tableData = content.filter((arr) => {
           let value = [arr.courseName, arr.college.id]
           value = value.toString()
+          // 去重，如果课程名和学院id在res里面不存在，则返回
           return !res.has(value) && res.set(value, 1)
         })
         this.total = this.tableData.length
@@ -201,17 +262,28 @@ export default {
           this.currentPage -= 1
           this.fetchData()
         }
+        // 这里slice(start,end)[start,end)
         this.tableData = this.tableData.slice((this.currentPage - 1) * this.pagesize, this.currentPage * this.pagesize)
         this.listLoading = false
       })
     },
     search() {
+      this.fetchOrSearch = false
       if (this.name.length === 0) {
         this.$message('不能为空')
       } else {
         this.listLoading = true
-        this.currentPage = 1
-        this.fetchData()
+        const page = this.currentPage - 1
+        const size = this.pagesize
+        const blurry = this.name // 搜索框的搜索关键字
+        let params = null
+        params = { page, size, blurry }
+        crudClass.get(params).then(response => {
+          this.tableData = response.content
+          console.log(JSON.stringify(response.content))
+          this.total = response.totalElements
+        })
+        this.listLoading = false
       }
     },
     update() {
@@ -270,7 +342,11 @@ export default {
     },
     handleCurrentChange(val) {
       this.currentPage = val
-      this.fetchData()
+      if (this.fetchOrSearch) {
+        this.fetchData()
+      } else {
+        this.search()
+      }
     },
     handleAdd() {
       this.dialogTitle = '添加课程'
@@ -281,6 +357,8 @@ export default {
     handleEdit(index, row) {
       this.dialogTitle = '编辑课程'
       this.form = JSON.parse(JSON.stringify(row))
+      // {"id":50,"courseName":"工程训练","school":"开发者","college":{"id":57,"name":"15小组"}}
+      console.log('当前的row=' + JSON.stringify(row))
       this.getSupDepts(this.form.college.id)
       this.visible = true
     },
@@ -302,6 +380,7 @@ export default {
     getSupDepts(deptId) {
       getDeptSuperior(deptId).then(res => {
         const date = res.content
+        console.log('getSupDepts = ' + JSON.stringify(res.content))
         this.buildColleges(date)
         this.colleges = date
       })

@@ -13,6 +13,7 @@ export function get(dictName) {
   })
 }
 
+
 export function getDictMap(dictName) {
   const params = {
     dictName,

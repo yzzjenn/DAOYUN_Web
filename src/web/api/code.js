@@ -1,4 +1,5 @@
 import request from '@/web/utils/request'
+// import { param2Obj } from '../utils'
 
 export function resetEmail(data) {
   return request({
@@ -14,9 +15,9 @@ export function updatePass(pass) {
   })
 }
 
-export function sendCode(data) {
+export function sendCode(data, phone) {
   return request({
-    url: 'api/users/emailCode',
+    url: 'api/code/phoneCode?phoneNumber=' + phone,
     method: 'post',
     data
   })

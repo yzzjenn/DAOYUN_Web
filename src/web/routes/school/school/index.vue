@@ -17,10 +17,10 @@
     </div>
     <el-dialog
       append-to-body
+      :title="crud.status.title"
+      :visible.sync="crud.status.cu > 0"
       :close-on-click-modal="false"
       :before-close="crud.cancelCU"
-      :visible.sync="crud.status.cu > 0"
-      :title="crud.status.title"
       width="500px"
     >
       <el-form ref="form" inline :model="form" :rules="rules" size="small" label-width="80px">
@@ -40,6 +40,7 @@
             <el-radio label="0">否</el-radio>
           </el-radio-group>
         </el-form-item>
+        <!-- 学院需要选择它所在的学校 istop  == 1 说明是学校：即根-->
         <el-form-item v-if="form.isTop === '0'" style="margin-bottom: 0;" label="上级院校" prop="pid">
           <treeselect
             v-model="form.pid"
@@ -63,6 +64,7 @@
       :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
       :data="crud.data.slice((currentPage-1)*pagesize,currentPage*pagesize)"
       row-key="id"
+      @row-click="sohd"
       @select="crud.selectChange"
       @select-all="crud.selectAllChange"
       @selection-change="crud.selectionChangeHandler"
@@ -119,8 +121,13 @@ export default {
     Pagination
   },
   cruds() {
+    console.log('1.获取数据')
+    // 扩展运算符(…)用于取出参数对象中的所有可遍历属性，拷贝到当前对象之中
+    // crudMethod: { ...crudDept } 这里把crudDept里面的东西复制（全选复制）到crudMethod（全选删除后被复制）中，相同的覆盖（和文件复制（同名文件覆盖）道理一样）。
     return CRUD({ title: '院校', url: 'api/dept', crudMethod: { ...crudDept }})
   },
+  //  mixins：
+  //        父组件 + 子组件 >>> new父组件
   mixins: [presenter(), header(), form(defaultForm), crud()],
   // 设置数据字典
   // dicts: ['dept_status'],
@@ -141,37 +148,52 @@ export default {
     }
   },
   methods: {
+    // 点击改行出现数据
+    sohd(row, column, event) {
+      // console.log(row)
+    },
+    // 获取下一级
     getDeptDatas(tree, treeNode, resolve) {
+      console.log('加载了load')
       const params = { pid: tree.id }
       setTimeout(() => {
+        // 获取子目录（这里是根据根目录的id进行查询子目录）
         crudDept.getDepts(params).then(res => {
+          // console.log(res)
           resolve(res.content)
         })
       }, 100)
     },
     // 新增与编辑前做的操作
+    // from:即选中的行里面from的值，这里crud里面是CRUD对象，crud.data存放学校数据，即一级目录
+    // pid ： parent_id（=id 学校的id） ，如院有pid属性，
     [CRUD.HOOK.afterToCU](crud, form) {
+      // 这里主要是给单选框进行默认值操作
+      console.log(form.id)
       if (form.pid !== null) {
         form.isTop = '0'
-      } else if (form.id !== null) {
+      } else if (form.id === null) {
         form.isTop = '1'
       }
       form.enabled = `${form.enabled}`
-      if (form.id != null) {
+      if (form.id != null) { // 编辑
         this.getSupDepts(form.id)
-      } else {
+      } else { // 添加
         this.getDepts()
       }
     },
     getSupDepts(id) {
       crudDept.getDeptSuperior(id).then(res => {
         const date = res.content
+        console.log(JSON.stringify(date))
         this.buildDepts(date)
+        console.log(JSON.stringify(date))
         this.depts = date
       })
     },
     buildDepts(depts) {
       depts.forEach(data => {
+        console.log(data.children)
         if (data.children) {
           this.buildDepts(data.children)
         }
@@ -180,6 +202,9 @@ export default {
         }
       })
     },
+    // 获取学校，即一级目录，这里获取了全部的学校
+    // res.content （对象数组）采用 map(遍历的要求) 方法进行遍历
+    // 这里map的功能是遍历每一个元素（学校），如果它有子代（即学院）则对这个元素对象添加children属性，并初始化为null;否则不做修改
     getDepts() {
       crudDept.getDepts({ enabled: true }).then(res => {
         this.depts = res.content.map(function(obj) {
@@ -188,10 +213,12 @@ export default {
           }
           return obj
         })
+        console.log(this.depts)
       })
     },
     // 获取弹窗内院校数据
     loadDepts({ action, parentNode, callback }) {
+      console.log('loadDepts')
       if (action === LOAD_CHILDREN_OPTIONS) {
         crudDept.getDepts({ enabled: true, pid: parentNode.id }).then(res => {
           parentNode.children = res.content.map(function(obj) {

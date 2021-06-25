@@ -37,5 +37,17 @@ export function edit(data) {
     data
   })
 }
+export function search(dictName) {
+  const params = {
+    dictName,
+    page: 0,
+    size: 9999
+  }
+  return request({
+    url: 'api/dict/search',
+    method: 'get',
+    params
+  })
+}
 
-export default { getDicts, add, edit, del }
+export default { getDicts, add, edit, del, search }

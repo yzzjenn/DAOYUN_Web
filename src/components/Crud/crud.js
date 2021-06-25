@@ -123,7 +123,7 @@ function CRUD(options) {
       crud.page.page = 1
       crud.refresh()
     },
-    // 刷新
+    // 刷新,获取表格数据
     refresh() {
       if (!callVmHook(crud, CRUD.HOOK.beforeRefresh)) {
         return
@@ -139,6 +139,7 @@ function CRUD(options) {
           }
           crud.page.total = data.totalElements
           crud.data = data.content
+          // console.log(crud.title + '------' + JSON.stringify(data) + '------' + crud.url + '------' + JSON.stringify(crud.getQueryParams()))
           crud.resetDataStatus()
           // time 毫秒后显示表格
           setTimeout(() => {

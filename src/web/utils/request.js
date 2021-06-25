@@ -2,21 +2,19 @@ import axios from 'axios'
 import { MessageBox, Message, Notification } from 'element-ui'
 import store from '@/web/store'
 import { getToken } from '@/web/utils/auth'
+import { compile } from 'path-to-regexp'
 
-// 创建一个axios实例
+// 创建一个新的自定义的axios函数对象，用axios.create()创建一个新的axios发请求，（使用自定义配置创建一个新的axios实例）。
 const service = axios.create({
-  // baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
-  baseURL: process.env.NODE_ENV === 'production' ? process.env.VUE_APP_BASE_API : '/', // api 的 base_url
-  // baseURL: '',
-  // withCredentials: true, // send cookies when cross-domain requests
+  baseURL: process.env.NODE_ENV === 'production' ? process.env.VUE_APP_BASE_API : '/', // url = base url + request url
   timeout: 5000 // request timeout
 })
 
-// request interceptor
+// request interceptor，头插
 service.interceptors.request.use(
   config => {
+    console.log('interceptors.request')
     // do something before request is sent
-
     if (store.getters.token) {
       // let each request carry token
       // ['Token'] is a custom headers key
@@ -29,11 +27,12 @@ service.interceptors.request.use(
   error => {
     // do something with request error
     // console.log(error) // for debug
+    console.log('request error', error)
     return Promise.reject(error)
   }
 )
 
-// response interceptor
+// response interceptor，尾插
 service.interceptors.response.use(
   /**
    * If you want to get http information such as headers or status
